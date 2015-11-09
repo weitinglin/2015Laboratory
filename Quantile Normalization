@@ -1,0 +1,24 @@
+#Quantil Normalization made by Lynn
+#setting
+A<-read.delim("WT-RNA-V5-AB-RNA.GeneDiffexp")
+boxplot(log2(A[,3]+1),log2(A[,4]+1),names=c("WT","Mut"),main="Gene expression profiling",pch=18,ylab="l.
+
+
+x<-log2(A[,3]+1)
+y<-log2(A[,4]+1)
+a<-cbind(x,y)
+
+#step 1: sort each column
+asort <- apply(a,2,sort)
+loc<-apply(a,2,ordr)
+#step 2 :Takes the means of across rows
+amean<-matrix(rep(apply(asort,1,mean),dim(a)[2],nrow=length(apply(assort,1,mean)))
+#step 3 :Rearranging each column to make the same ordering as the original data
+norm<-matrix(0,dim(a)[1],dim(a)[2])
+for(i in 1:dim(amean)[1]){
+  #cat(loc[j,i],"\t",i,"\t",j,"\t",amean[j,i],"\n")
+  norm[loc[j,i],i]=amean[j,i]
+  }
+}
+
+boxplot(norm,names=c("WT","Mut"),main....
