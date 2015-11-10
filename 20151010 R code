@@ -1,0 +1,134 @@
+## weiting lin  20151010
+## data type: affymetrix microarray 
+## experiment: lung cancer stem cell with and without caf
+## topic: play with hgu133plus2.db
+
+
+#seting working directory
+setwd("/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray")
+
+#package to read CEL
+source("http://bioconductor.org/biocLite.R")
+biocLite("affyio")
+biocLite(c("affyPLM","affy","oligo","limma","arrayMagic"))
+
+#data directory
+"/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray"=system.file("extdata",package="Biobase")
+exprsFile=file.path("/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray","CHW_CLS 1-2 p.3.CEL")
+exprs=as.matrix(read.table(exprsFile,header=TRUE,sep="\t",row.name=1,as.is=TRUE))
+
+#install the anotation database of human genome u133 plus 2 affymetric microarray
+source("http://bioconductor.org/biocLite.R")
+biocLite("hgu133plus2.db")
+
+#observation of the annotation database
+hgu133plus2.db
+>
+ChipDb object:
+| DBSCHEMAVERSION: 2.1
+| Db type: ChipDb
+| Supporting package: AnnotationDbi
+| DBSCHEMA: HUMANCHIP_DB
+| ORGANISM: Homo sapiens
+| SPECIES: Human
+| MANUFACTURER: Affymetrix
+| CHIPNAME: Human Genome U133 Plus 2.0 Array
+| MANUFACTURERURL: http://www.affymetrix.com/support/technical/byproduct.affx?product=hg-u133-plus
+| EGSOURCEDATE: 2015-Mar17
+| EGSOURCENAME: Entrez Gene
+| EGSOURCEURL: ftp://ftp.ncbi.nlm.nih.gov/gene/DATA
+| CENTRALID: ENTREZID
+| TAXID: 9606
+| GOSOURCENAME: Gene Ontology
+| GOSOURCEURL: ftp://ftp.geneontology.org/pub/go/godatabase/archive/latest-lite/
+| GOSOURCEDATE: 20150314
+| GOEGSOURCEDATE: 2015-Mar17
+| GOEGSOURCENAME: Entrez Gene
+| GOEGSOURCEURL: ftp://ftp.ncbi.nlm.nih.gov/gene/DATA
+| KEGGSOURCENAME: KEGG GENOME
+| KEGGSOURCEURL: ftp://ftp.genome.jp/pub/kegg/genomes
+| KEGGSOURCEDATE: 2011-Mar15
+| GPSOURCENAME: UCSC Genome Bioinformatics (Homo sapiens)
+| GPSOURCEURL: ftp://hgdownload.cse.ucsc.edu/goldenPath/hg19
+| GPSOURCEDATE: 2010-Mar22
+| ENSOURCEDATE: 2015-Mar13
+| ENSOURCENAME: Ensembl
+| ENSOURCEURL: ftp://ftp.ensembl.org/pub/current_fasta
+| UPSOURCENAME: Uniprot
+| UPSOURCEURL: http://www.UniProt.org/
+| UPSOURCEDATE: Tue Mar 17 18:48:15 2015
+
+
+ls("package:hgu133plus2.db")
+>
+ #[1] "hgu133plus2"              "hgu133plus2_dbconn"       "hgu133plus2_dbfile"       #"hgu133plus2_dbInfo"       "hgu133plus2_dbschema"    
+ #[6] "hgu133plus2.db"           "hgu133plus2ACCNUM"        "hgu133plus2ALIAS2PROBE"   #"hgu133plus2CHR"           "hgu133plus2CHRLENGTHS"   
+#[11] "hgu133plus2CHRLOC"        "hgu133plus2CHRLOCEND"     "hgu133plus2ENSEMBL"       #"hgu133plus2ENSEMBL2PROBE" "hgu133plus2ENTREZID"     
+#[16] "hgu133plus2ENZYME"        "hgu133plus2ENZYME2PROBE"  #"hgu133plus2GENENAME"      "hgu133plus2GO"            "hgu133plus2GO2ALLPROBES" 
+#[21] "hgu133plus2GO2PROBE"      "hgu133plus2MAP"           #"hgu133plus2MAPCOUNTS"     "hgu133plus2OMIM"          "hgu133plus2ORGANISM"     
+#[26] "hgu133plus2ORGPKG"        "hgu133plus2PATH"          "hgu133plus2PATH2PROBE"    #"hgu133plus2PFAM"          "hgu133plus2PMID"         
+#[31] "hgu133plus2PMID2PROBE"    "hgu133plus2PROSITE"       "hgu133plus2REFSEQ"        #"hgu133plus2SYMBOL"        "hgu133plus2UNIGENE"      
+#[36] "hgu133plus2UNIPROT"      
+
+columns(hgu133plus2.db)
+>
+# [1] "PROBEID"      "ENTREZID"     "PFAM"         "IPI"          "PROSITE"      "ACCNUM"       #"ALIAS"        "CHR"          "CHRLOC"       "CHRLOCEND"   
+#[11] "ENZYME"       "MAP"          "PATH"         "PMID"         "REFSEQ"       "SYMBOL"       #"UNIGENE"      "ENSEMBL"      "ENSEMBLPROT"  "ENSEMBLTRANS"
+#[21] "GENENAME"     "UNIPROT"      "GO"           "EVIDENCE"     "ONTOLOGY"     "GOALL"        #"EVIDENCEALL"  "ONTOLOGYALL"  "OMIM"         "UCSCKG"     
+
+help("PROSITE")
+keytypes(hgu133plus2.db)
+>
+ #[1] "ENTREZID"     "PFAM"         "IPI"          "PROSITE"      "ACCNUM"       "ALIAS"        #"ENZYME"       "MAP"          "PATH"         "PMID"        
+#[11] "REFSEQ"       "SYMBOL"       "UNIGENE"      "ENSEMBL"      "ENSEMBLPROT"  #"ENSEMBLTRANS" "GENENAME"     "UNIPROT"      "GO"           "EVIDENCE"    
+#[21] "ONTOLOGY"     "GOALL"        "EVIDENCEALL"  "ONTOLOGYALL"  "PROBEID"      #"OMIM"         "UCSCKG"      
+
+head(keys(hgu133plus2.db,keytype="SYMBOL"))
+k<-head(keys(hgu133plus2.db,keytype="PROBEID"))
+select(hgu133plus2.db,keys=k,columns=c("SYMBOL","GENENAME"),keytype="PROBEID")
+>
+ #  PROBEID  SYMBOL                                    GENENAME
+#1 1007_s_at    DDR1 discoidin domain receptor tyrosine kinase 1
+#2 1007_s_at MIR4640                               microRNA 4640
+#3   1053_at    RFC2 replication factor C (activator 1) 2, 40kDa
+#4    117_at   HSPA6        heat shock 70kDa protein 6 (HSP70B')
+#5    121_at    PAX8                                paired box 8
+#6 1255_g_at  GUCA1A     guanylate cyclase activator 1A (retina)
+#7   1294_at    UBA7 ubiquitin-like modifier activating enzyme 7
+#8   1294_at MIR5193                               microRNA 5193
+
+
+#loading the library
+library(oligo)
+
+#use oligo to import the Affymetrix (此方法似乎不work)
+celFiles <- list.celfiles(exprsFile,full.names=TRUE)
+rawData <- read.celfiles(celFiles)
+
+
+# Try 01 # success with affyio but without annotation
+library(affyio)
+rawData<-read.celfile("CHW_CLS 1-2 p.3.CEL")
+ls(rawData)
+#"HEADER"    "INTENSITY" "MASKS"     "OUTLIERS" 
+
+
+#TRY 02 # try oligo with annotation
+library(hgu133plus2.db)
+library(oligo)
+data_dir=system.file("/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/CHW_CLS 1-2 p.3.CEL")
+rawData_oligo<-list.celfiles(data_dir,full.name=TRUE)
+
+affyraw<-read.celfiles(rawData)
+Cstack_info()
+class(rawData_oligo)
+checkChipType
+rawData_oligo
+file.info("CHW_CLS 1-2 p.3.CEL")
+
+
+browseVignettes(package="affy")
+browseVignettes(package="affyPLM")
+browseVignettes(package="oligo")
+news(package='oligo')
+
