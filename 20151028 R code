@@ -1,0 +1,138 @@
+##Microarray analysis 20151028
+#weitinglin
+#from Bioconductor course
+#URUGUAY2015-gene expression
+#https://www.bioconductor.org/help/course-materials/2015/Uruguay2015/day3-gene.expression.html
+
+
+#setting the working directory
+setwd("/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/raw data CLSCLF")
+
+#install the packages
+source("https://www.bioconductor.org/biocLite.R")
+biocLite("GEOquery")
+biocLite("RColorBrewer")
+
+#load the data
+my_microarray=ReadAffy()
+sampleNames(my_microarray)
+
+#creating phenodata
+phenodata=matrix(rep(list.files(),1),ncol=1)
+phenodata
+
+phenodata=as.data.frame(phenodata)
+colnames(phenodata)<-c("FileName")
+phenodata$Group<-c("Group1","Group1","Group1","Group3","Group3","Group2 ","Group2 ","Group2 ","Group3")
+#Group1  CLF 6_1/2/3
+#Group2  CLS 6_1/2/3
+#Group3  CLS_3,8,14
+write.table(phenodata,"/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/phenodata/phenodata.txt",quote=F,sep="\t",row.names=F)
+#檔案名稱有空格會有問題，編譯器會以為多一個column
+
+
+#loading the Simpleaffy
+library(simpleaffy)
+
+#read the data
+celfiles<-read.affy(covdesc="phenodata.txt",path="/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/phenodata")
+
+
+#plot the file
+library(RColorBrewer)
+cols=brewer.pal(8,"Set2")
+par(mfrow=c(1,2))
+boxplot(celfiles,col=cols, las=2,main="Method 1");
+boxplot(my_microarray,col=cols, las=2,main="Method 2")  #比較兩種讀取法的差異性,似乎沒有差別xd，第二種讀法是bioconductor case study裡面使用的
+
+
+
+#RColorBrewer
+library(RColorBrewer)
+cols=brewer.pal(8,"Set1")
+eset=exprs(celfiles)
+samples<-celfiles$Group
+colnames(eset)
+colnames(eset)=samples
+boxplot(celfiles,col=cols,las=2)
+
+#distance for cluster
+distance=dist(t(eset),method="maximum")
+clusters=hclust(distance)
+plot(clusters)
+
+eset_my_microarray=exprs(my_microarray)
+distance_my_microarray=dist(t(eset_my_microarray),method="maximum")
+clusters=hclust(distance_my_microarray)
+plot(clusters)
+
+
+#normalization
+celfiles.gcrma=gcrma(celfiles)
+celfiles.gcrma=exprs(celfiles.gcrma)
+class(celfiles.gcrma)
+
+
+#compare pre and post normalization
+par(mfrow=c(1,2))
+boxplot(celfiles.gcrma, col=cols, las=2, main="Post-Normalization");
+boxplot(celfiles, col=cols, las=2, main="Pre-Normalization")
+dev.off()
+
+#load the limma library
+library(limma)
+phenodata
+
+samples=as.factor(samples)
+design=model.matrix(~0+samples)
+colnames(design)
+
+colnames(design)=c("Group1","Group2","Group3")
+
+#annotation
+contrast.matrix=makeContrasts(Group1_Group2=Group1-Group2,levels = design)
+fit=lmFit(celfiles.gcrma, design)
+group_fit<-contrasts.fit(fit, contrast.matrix)
+group_ebay<-eBayes(group_fit)
+
+library(hgu133plus2.db)
+library(annotate)
+probenames.list<-rownames(topTable(group_ebay,number=100000))
+getsymbols<-getSYMBOL(probenames.list,"hgu133plus2")
+results<-topTable(group_ebay,number=100000,coef="Group1_Group2")
+results<-cbind(results,getsymbols)
+summary(results)
+class(results)
+class(group_ebay)
+results$threshold <- "1"
+a <- subset(results, adj.P.Val < 0.05 & logFC > 5)
+results[rownames(a), "threshold"] <- "2"
+b <- subset(results, adj.P.Val < 0.05 & logFC < -5)
+results[rownames(b), "threshold"] <- "3"
+table(results$threshold)
+
+#To make ggplot
+library(ggplot2)
+png("20151027Volcano.png")
+volcano <- ggplot(data = results, 
+                  aes(x = logFC, y = -1*log10(adj.P.Val), 
+                      colour = threshold, 
+                      label = getsymbols))
+
+volcano <- volcano + 
+  geom_point() + 
+  scale_color_manual(values = c("black", "red", "green"), 
+                     labels = c("Not Significant", "Upregulated", "Downregulated"), 
+                     name = "Key/Legend")
+
+volcano + 
+  geom_text(data = subset(results, logFC > 5 & -1*log10(adj.P.Val) > 5), aes(x = logFC, y = -1*log10(adj.P.Val), colour = threshold, label = getsymbols)  )
+ dev.off()
+  
+##get the symbol
+#a:upregulated
+#b:downregulater
+a.list<-a[order(a$logFC,decreasing = TRUE),]
+b.list<-b[order(b$logFC,decreasing = FALSE),]
+upregulate<-(a.list)[1:100,]
+downreulate<-(b.list)[1:100,]
