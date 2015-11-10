@@ -1,0 +1,135 @@
+## Progress Report
+#20151027
+# weitinglin
+
+
+#load the data
+library(affy)
+NSCLC_rawdata<-ReadAffy()
+sampleNames(NSCLC_rawdata)=sub("CHW_","",sampleNames(NSCLC_rawdata))
+sampleNames(NSCLC_rawdata)=sub(" ","",sampleNames(NSCLC_rawdata))
+sampleNames(NSCLC_rawdata)=sub("\\.CEL$","",sampleNames(NSCLC_rawdata))
+
+#phenoData
+phenodata=as.data.frame(sampleNames(NSCLC_rawdata),ncol=1)
+rownames(phenodata)=sampleNames(NSCLC_rawdata)
+phenodata$Group=c(rep("CLF_6",3),"CLS_14","CLS_3",rep("CLS_6",3),"CLS_8",rep("Sphere",3))
+colnames(phenodata)=c("Filename","Group")
+mt=match(rownames(phenodata),sampleNames(NSCLC_rawdata))
+
+vmd<-data.frame(labelDescription=c("Filename","Group"))
+phenoData(NSCLC_rawdata)=new("AnnotatedDataFrame",data=phenodata,varMetadata=vmd)
+
+#Basic Plot
+library(RColorBrewer)
+cols=brewer.pal(8,"Set2")
+png("20151027RawData.png")
+boxplot(NSCLC_rawdata,col=cols, las=2,main="Raw Data");
+dev.off()
+
+
+#Quality Control
+library(affyQCReport)
+rawdata_qc=qc(NSCLC_rawdata)
+png("20151027raw_qc_report.png")
+plot(rawdata_qc)
+dev.off()
+
+#QC report
+QCReport(NSCLC_rawdata,file="Rawdata.pdf")
+
+#Heatmap with the function of "dist2"/"levelplot"
+#calculate the median of the absolute values of therir difference
+dd<-dist2(log2(exprs(NSCLC_rawdata)))
+
+#reordering rows and columns 
+diag(dd)=0
+dd.row<-as.dendrogram(hclust(as.dist(dd)))
+row.ord<-order.dendrogram(dd.row)
+library("latticeExtra")
+legend<-list(top=list(fun=dendrogramGrob,args=list(x=dd.row,side="top")))
+png("20151027_Heatmap with levelplot and ddremove.png")
+lp=levelplot(dd[row.ord,row.ord],scales=list(x=list(rot=90)),xlab="",ylab="",legend=legend)
+levelplot(dd[row.ord,row.ord],scales=list(x=list(rot=90)),xlab="",ylab="",legend=legend)
+dev.off()
+
+#Create RLE and NUSE plote
+library("affyPLM")
+dataPLM=fitPLM(NSCLC_rawdata)
+
+#NUSE:Normalized Unscaled Standard Error
+png("20151027 Normalized Unscaled Standard Error with affyPLMremove.png")
+boxplot(dataPLM,main="NUSE",ylim=c(0.95,1.22),outline=FALSE,col="lightblue",las=3,whisklty=0,staplelty=0)
+dev.off()
+
+#RLE:Relative Log Expression
+png("20151027 Relative log expression with affyPLMremove.png")
+Mbox(dataPLM,main="RLE",ylim=c(-0.4,0.4),outline=FALSE,col="mistyrose",las=3,whisklty=0,staplelty=0)
+dev.off()
+
+#Gene Expression Profiling
+#normalization
+sampleNames(NSCLC_rawdata)
+NSCLC.gcrma=gcrma(NSCLC_rawdata)
+samples<-celfiles$Group
+colnames(eset)
+colnames(eset)=samples
+
+
+
+#load the limma library
+library(limma)
+phenodata
+
+samples=as.factor(samples)
+design=model.matrix(~0+samples)
+colnames(design)
+
+colnames(design)=c("Group1","Group2","Group3")
+
+#annotation
+contrast.matrix=makeContrasts(Group1_Group2=Group1-Group2,levels = design)
+fit=lmFit(celfiles.gcrma, design)
+group_fit<-contrasts.fit(fit, contrast.matrix)
+group_ebay<-eBayes(group_fit)
+
+library(hgu133plus2.db)
+library(annotate)
+probenames.list<-rownames(topTable(group_ebay,number=100000))
+getsymbols<-getSYMBOL(probenames.list,"hgu133plus2")
+results<-topTable(group_ebay,number=100000,coef="Group1_Group2")
+results<-cbind(results,getsymbols)
+summary(results)
+class(results)
+class(group_ebay)
+results$threshold <- "1"
+a <- subset(results, adj.P.Val < 0.05 & logFC > 5)
+results[rownames(a), "threshold"] <- "2"
+b <- subset(results, adj.P.Val < 0.05 & logFC < -5)
+results[rownames(b), "threshold"] <- "3"
+table(results$threshold)
+
+#To make ggplot
+library(ggplot2)
+volcano <- ggplot(data = results, 
+                  aes(x = logFC, y = -1*log10(adj.P.Val), 
+                      colour = threshold, 
+                      label = getsymbols))
+
+volcano <- volcano + 
+  geom_point() + 
+  scale_color_manual(values = c("black", "red", "green"), 
+                     labels = c("Not Significant", "Upregulated", "Downregulated"), 
+                     name = "Key/Legend")
+
+volcano + 
+  geom_text(data = subset(results, logFC > 5 & -1*log10(adj.P.Val) > 5), aes(x = logFC, y = -1*log10(adj.P.Val), colour = threshold, label = getsymbols)  )
+  
+  
+##get the symbol
+#a:upregulated
+#b:downregulater
+a.list<-a[order(a$logFC,decreasing = TRUE),]
+b.list<-b[order(b$logFC,decreasing = FALSE),]
+(a.list)[1:100,]
+(b.list)[1:100,]
