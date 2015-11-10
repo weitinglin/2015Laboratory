@@ -1,0 +1,202 @@
+## Raw Affymetrix Microarray Data preprocessing and QC
+## data:20151014
+## data type: affymetrix microarray 
+## experiment: lung cancer stem cell with and without caf
+## weitinglin
+
+
+#setting the file path and working directory
+setwd("/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray")
+
+exprsFile=file.path("/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray","CHW_CLS 1-2 p.3.CEL")
+
+
+
+#Load the library
+library(affyPLM)
+library(affy)
+library(oligo)
+library(limma)
+library(Biobase)
+
+#Input data
+myAB<-ReadAffy()
+＃仔細研究一下，這樣輸入會自動把working directory 下的檔案讀進來
+
+
+myAB      #竟然跑出一堆字串
+#|         AffyBatch object
+#|         size of array: 1164 x 1164
+#|		    HGU133plus2
+#|			54675 affyids
+
+myAB<-ReadAffy(filenames=exprsFile)
+
+
+#exploratory the data
+sample(myAB)
+sampleNames(myAB)
+
+#contruct the basic information data.frame
+ex_id<-c("cancer_stem_cell_with_cancer-associated_fibroblast_on_13_generation_1st",   
+"cancer_stem_cell_with_cancer-associated_fibroblast_on_13_generation_2nd",
+"cancer_stem_cell_with_cancer-associated_fibroblast_on_13_generation_3rd",
+"cancer_stem_cell_without_cancer-associated_fibroblast_on_14_generation", 
+"cancer_stem_cell_without_cancer-associated_fibroblast_on_3_generation",
+"cancer_stem_cell_without_cancer-associated_fibroblast_on_6_generation_1st",
+"cancer_stem_cell_without_cancer-associated_fibroblast_on_6_generation_2nd",
+"cancer_stem_cell_without_cancer-associated_fibroblast_on_6_generation_3rd",
+"cancer_stem_cell_without_cancer-associated_fibroblast_on_8_generation",
+"cancer_stem_cell_sphere_1st",
+"cancer_stem_cell_sphere_2nd",   
+"cancer_stem_cell_sphere_3rd
+")
+SampleID<-c("CHW_CLF 13-6-1.CEL","CHW_CLF 13-6-2.CEL" ,"CHW_CLF 13-6-3.CEL","CHW_CLS 1-2 p.14.CEL","CHW_CLS 1-2 p.3.CEL","CHW_CLS 1-2 p.6-1.CEL","CHW_CLS 1-2 p.6-2.CEL","CHW_CLS 1-2 p.6-3.CEL","CHW_CLS 1-2 p.8.CEL" ,"CHW_Sphere-1.CEL" ,"CHW_Sphere-2.CEL","CHW_Sphere-3.CEL")
+
+#compare the different type of construct matrix
+dataID<-data.frame(ex_id,SampleID)
+dataID<-rbind(SampleID,ex_id)
+dataID<-as.matrix(SampleID,ex_id)
+dataID<-matrix(nrow=12,ncol=2)
+#one way
+dataID[,1]<-SampleID
+dataID[,2]<-ex_id
+class(dataID)
+dataIDframe<-data.frame(dataID)   
+dataIDframe[1]
+#re-organize the data name
+sampleNames(myAB)
+sampleNames(myAB)=sub("\\.CEL$","",sampleNames(myAB))
+dataID[,1]<-sub("\\.CEL$","",dataID[,1])
+rownames(dataIDframe)<-dataIDframe[,1]  #這會決定之後分析圖表旁的標注
+
+#creat annotationDataFrame
+mt<-match(dataID[,1],sampleNames(myAB))
+vmd<-data.frame(labelDescription=c("SampleID","Experiment description"))
+phenoData(myAB)=new("AnnotatedDataFrame",data=dataIDframe,varMetadata=vmd)  #data這項必須放入data.frame的格式
+
+
+#Quality Assessment
+#recommend packages:
+"arrayQualityMetrics","affyQCReport","affyQCReport","simpleaffy"
+source("http://www.bioconductor.org/biocLite.R")
+biocLite(c("arrayQualityMetrics","affyQCReport","affyQCReport","simpleaffy"))
+
+
+#load the library
+library("affyQCReport")
+library("simpleaffy")
+
+#QC summary with "simpleaffy"
+saqc=qc(myAB)
+class(saqc)
+png("20151014_QC.png")
+plot(saqc)
+dev.off()
+#reference:https://www.bioconductor.org/packages/release/bioc/vignettes/affyQCReport/inst/doc/affyQCReport.pdf
+#Laurent Gautier, Leslie Cope, Benjamin M. Bolstad, and Rafael A. Irizarry. affy–analysis of Affymetrix GeneChip data at the probe level. Bioinformatics, 20(3):307–315, 2004. http://bioinformatics.oupjournals.org/cgi/content/abstract/20/3/307. 
+#Crispin J Miller. simpleaffy, 2005. http://bioinformatics.picr.man.ac.uk/simpleaffy/index.jsp.
+#http://www.rdocumentation.org/packages/simpleaffy/functions/qc
+
+
+#Heatmap with the function of "dist2"/"levelplot"
+#calculate the median of the absolute values of therir difference
+dd<-dist2(log2(exprs(myAB)))
+
+#reordering rows and columns 
+diag(dd)=0
+dd.row<-as.dendrogram(hclust(as.dist(dd)))
+row.ord<-order.dendrogram(dd.row)
+library("latticeExtra")
+legend<-list(top=list(fun=dendrogramGrob,args=list(x=dd.row,side="top")))
+png("20151014_Heatmap with levelplot and dd.png")
+lp=levelplot(dd[row.ord,row.ord],scales=list(x=list(rot=90)),xlab="",ylab="",legend=legend)
+levelplot(dd[row.ord,row.ord],scales=list(x=list(rot=90)),xlab="",ylab="",legend=legend)
+dev.off()
+
+#Create RLE and NUSE plote
+library("affyPLM")
+dataPLM=fitPLM(myAB)
+
+#NUSE:Normalized Unscaled Standard Error
+png("20151014 Normalized Unscaled Standard Error with affyPLM.png")
+boxplot(dataPLM,main="NUSE",ylim=c(0.95,1.22),outline=FALSE,col="lightblue",las=3,whisklty=0,staplelty=0)
+dev.off()
+
+#RLE:Relative Log Expression
+png("20151014 Relative log expression with affyPLM.png")
+Mbox(dataPLM,main="RLE",ylim=c(-0.4,0.4),outline=FALSE,col="mistyrose",las=3,whisklty=0,staplelty=0)
+dev.off()
+
+#Remove the bad microarray
+badArray=match("CHW_CLS 1-2 p.3",sampleNames(myAB))
+myAB_remove=myAB[,-badArray]
+
+#QC summary with "simpleaffy"
+saqc=qc(myAB_remove)
+class(saqc)
+png("20151014_QCremove.png")
+plot(saqc)
+dev.off()
+#reference:https://www.bioconductor.org/packages/release/bioc/vignettes/affyQCReport/inst/doc/affyQCReport.pdf
+#Laurent Gautier, Leslie Cope, Benjamin M. Bolstad, and Rafael A. Irizarry. affy–analysis of Affymetrix GeneChip data at the probe level. Bioinformatics, 20(3):307–315, 2004. http://bioinformatics.oupjournals.org/cgi/content/abstract/20/3/307. 
+#Crispin J Miller. simpleaffy, 2005. http://bioinformatics.picr.man.ac.uk/simpleaffy/index.jsp.
+#http://www.rdocumentation.org/packages/simpleaffy/functions/qc
+
+
+#Heatmap with the function of "dist2"/"levelplot"
+#calculate the median of the absolute values of therir difference
+dd<-dist2(log2(exprs(myAB_remove)))
+
+#reordering rows and columns 
+diag(dd)=0
+dd.row<-as.dendrogram(hclust(as.dist(dd)))
+row.ord<-order.dendrogram(dd.row)
+library("latticeExtra")
+legend<-list(top=list(fun=dendrogramGrob,args=list(x=dd.row,side="top")))
+png("20151014_Heatmap with levelplot and ddremove.png")
+lp=levelplot(dd[row.ord,row.ord],scales=list(x=list(rot=90)),xlab="",ylab="",legend=legend)
+levelplot(dd[row.ord,row.ord],scales=list(x=list(rot=90)),xlab="",ylab="",legend=legend)
+dev.off()
+
+#Create RLE and NUSE plote
+library("affyPLM")
+dataPLM=fitPLM(myAB_remove)
+
+#NUSE:Normalized Unscaled Standard Error
+png("20151014 Normalized Unscaled Standard Error with affyPLMremove.png")
+boxplot(dataPLM,main="NUSE",ylim=c(0.95,1.22),outline=FALSE,col="lightblue",las=3,whisklty=0,staplelty=0)
+dev.off()
+
+#RLE:Relative Log Expression
+png("20151014 Relative log expression with affyPLMremove.png")
+Mbox(dataPLM,main="RLE",ylim=c(-0.4,0.4),outline=FALSE,col="mistyrose",las=3,whisklty=0,staplelty=0)
+dev.off()
+
+
+
+#Background adjustment with gcrma version 2.0.0
+source("http://www.bioconductor.org/biocLite.R")
+biocLite("gcrma")
+
+#load library
+library("gcrma")
+
+#GCRMA the data with annotation about 10 min
+gcrma_myAB<-gcrma(myAB)
+class(gcrma_myAB)
+e=exprs(gcrma_myAB)
+dim(e)
+
+
+#Ranking and filtering the probes
+source("http://www.bioconductor.org/biocLite.R")
+biocLite("genefilter")
+library("genefilter")
+myABgcrma_filter<-nsFilter(gcrma_myAB,remove.dupEntrez=FALSE,var.cutof=0.5)$eset
+class(myABgcrma_filter)
+
+#Log fold change 這邊開始可能要分組來看或是設計，才有辦法進一步
+myABgcrma_filter_log_fold_change<-rowttests(myABgcrma_filter,dataIDframe[,1:2])  #有點關鍵的問題
+class(dataIDframe[,1])
+exprs(myABgcrma_filter)
