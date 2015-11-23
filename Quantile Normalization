@@ -12,7 +12,7 @@ a<-cbind(x,y)
 asort <- apply(a,2,sort)
 loc<-apply(a,2,ordr)
 #step 2 :Takes the means of across rows
-amean<-matrix(rep(apply(asort,1,mean),dim(a)[2],nrow=length(apply(assort,1,mean)))
+amean<-matrix(rep(apply(asort,1,mean),dim(a)[2]),nrow=length(apply(assort,1,mean)))
 #step 3 :Rearranging each column to make the same ordering as the original data
 norm<-matrix(0,dim(a)[1],dim(a)[2])
 for(i in 1:dim(amean)[1]){
