@@ -38,10 +38,10 @@ rownames(matrix_data)<-matrix_rownames
 colnames(matrix_data)<-matrix_colnames
 for( x in 1:length_data){
   for(y in 1:length_idea){
-    ppm=10^6 #+-10ppm
+    ppm_set=1/10^(5)  # the 10ppm =1/10^6*10
     if((matrix_data[x,y]-idea_raw[y])==0){
       matrix_data[x,y]<-c(1)
-    }else if(((matrix_data[x,y]-idea_raw[y])-ppm*(abs(matrix_data[x,y]-idea_raw[y])/idea_raw[y]))*((matrix_data[x,y]-idea_raw[y])+ppm*(abs(matrix_data[x,y]-idea_raw[y])/idea_raw[y]))<0){
+    }else if(((matrix_data[x,y]-idea_raw[y])-ppm_set*idea_raw[y])*((matrix_data[x,y]-idea_raw[y])+ppm_set*idea_raw[y])<0){
       matrix_data[x,y]<-c(1)
     }else{
       matrix_data[x,y]<-c(0)
@@ -53,7 +53,4 @@ for( x in 1:length_data){
 
 
 write.csv(matrix_data,file="target_protein.csv",row.names=FALSE)
-
-
-
 
