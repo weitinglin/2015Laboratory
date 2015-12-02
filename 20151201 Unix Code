@@ -1,0 +1,10 @@
+ #Laboratory project
+ #weitinglin
+ $grep ">"  gencode.v19.cds.fa|cut -d "|" -f1 |
+ $ grep "^>" gencode.v19.cds.cut.fa | cut -d '|' -f1 | sed 's/^>//g'|head -1
+ 
+ENST00000335137.3
+ENST00000423372.3
+ENST00000426406.1
+ENST00000332831.2
+ENST00000599533.1
