@@ -1,10 +1,15 @@
  #Laboratory project
  #weitinglin
- $grep ">"  gencode.v19.cds.fa|cut -d "|" -f1 |
- $ grep "^>" gencode.v19.cds.cut.fa | cut -d '|' -f1 | sed 's/^>//g'|head -1
+
+#change the gtf's header and add the chr information to the end fields
+$ cut -f2-9 gencode.v19.annotation.original.gtf > gencode.v19.annotation.cut.gtf
+$ cut -f9 gencode.v19.annotation.original.gtf|cut -d ';' -f2 |cut -d '"' -f2|tail -n +6>patch_file
+$ tail -n +6 gencode.v19.annotation.cut.gtf >gencode.v19.annotation.cut_head.gtf
+$ paste patch_file gencode.v19.annotation.cut_head.gtf> gencode.v19.annotation.ENST_header_delChr.gtf
+$ cut -f 1 gencode.v19.annotation.original.gtf > chr_file
+$ tail -n +6 chr_file> chr_file_cut
+$ paste gencode.v19.annotation.ENST_header_delChr.gtf chr_file_cut > gencode.v19.annotation.ENST_header_chr.gtf
+
+#add the indention in the head of the CDS.fasta data
+$cat genecode.v19.cds.fasta |sed 's/|/\t/' >genecode.v19.cds.modification.fasta
  
-ENST00000335137.3
-ENST00000423372.3
-ENST00000426406.1
-ENST00000332831.2
-ENST00000599533.1
