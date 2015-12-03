@@ -1,0 +1,49 @@
+##20151203
+#weitinglin
+#Description:
+# to sort the fasta data on the header
+#reference:http://bridgecrest.blogspot.tw/2011/08/sort-fastq-file-by-sequence.html
+
+
+=============================
+linearize the fasta data
+=============================
+#!/usr/bin/perl -w
+#mergelines.pl
+use strict;
+
+my $count = 0;
+while(my $line = <STDIN>){
+    chomp($line);
+    print $line;
+    $count = ($count + 1) % 2;
+    
+    if($count == 0){
+        print "\n"; 
+    }else{
+        print "\t";
+    }
+}
+
+$cat genecode.v19.cds.fasta | perl mergelines.pl > genecode.v19.cds.oneline.fast
+=============================
+sort the fasta data with the header
+=============================
+ cat genecode.v19.cds.oneline.fasta |sort -t $'\t' -k1>genecode.v19.cds.sort.fasta
+=============================
+back to the original fasta format
+=============================
+#!/usr/bin/perl -w
+
+#!/bin/perl -w
+use strict;
+
+my $count = 0;
+while(my $line = <STDIN> ){
+        chomp($line);
+        my @vals = split(/\t/, $line);
+        print $vals[0]."\n";
+        print $vals[2]."\n";
+        }
+
+$cat genecode.v19.cds.sort.fasta|perl split.pl > genecode.v19.cds.final.fasta
