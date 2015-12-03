@@ -12,4 +12,6 @@ $ paste gencode.v19.annotation.ENST_header_delChr.gtf chr_file_cut > gencode.v19
 
 #add the indention in the head of the CDS.fasta data
 $cat genecode.v19.cds.fasta |sed 's/|/\t/' >genecode.v19.cds.modification.fasta
+$cat genecode.v19.cds.fasta |head |sed 's/ENSG[-0-9A-Z|\.\:][-0-9A-Z|\.\:]*//'>genecode.v19.cds.clean.fasta
+
  
