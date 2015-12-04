@@ -56,5 +56,6 @@ select the transcript_id in the fasta and subsetting the gtf file or it may make
 
 $  grep ">" genecode.v19.cds.fasta |sed 's/^>//' > selected__transcript_list.txt
 $ grep -F -f selected__transcript_list.txt genecode.v19.cds.m.gtf >genecode.v19.cds.gtf
+$ grep "CDS" genecode.v19.cds.gtf > genecode.v19.subset.cds.gtf
 
 
