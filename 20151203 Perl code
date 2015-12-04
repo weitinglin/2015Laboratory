@@ -47,3 +47,14 @@ while(my $line = <STDIN> ){
         }
 
 $cat genecode.v19.cds.sort.fasta|perl split.pl > genecode.v19.cds.final.fasta
+
+
+
+
+##############################################
+select the transcript_id in the fasta and subsetting the gtf file or it may make gtf_to_fasta error
+
+$  grep ">" genecode.v19.cds.fasta |sed 's/^>//' > selected__transcript_list.txt
+$ grep -F -f selected__transcript_list.txt genecode.v19.cds.m.gtf >genecode.v19.cds.gtf
+
+
