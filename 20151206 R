@@ -1,0 +1,30 @@
+##20151206
+#Weitinglin
+#practice the GO and affymetrix annotation database in R
+##Part1
+library(hgu133plus2.db)
+x<-hgu133plus2CHR
+chrVec=unlist(as.list(hgu133plus2CHR))
+table(chrVec)
+class(table(chrVec))
+class(chrVec)
+prov_table<-table(chrVec)
+names(chrVec)[1]
+number_probe_on_chr<-as.vector(probe_table[1:22])
+name_of_chromosom<-names(probe_table)[1:22]
+number_probe_on_chr<-number_probe_on_chr[order(as.numeric(name_of_chromosom))]
+name_of_chromosome_sorted<-factor(sort(as.numeric(name_of_chromosom)))
+chr_probe<-data.frame(name_of_chromosome_sorted,as.numeric(number_probe_on_chr))
+colnames(chr_probe)<-c("Chromosome","Probe_numbers")
+#Task one : plot the probe numbers on the chromosome
+#library(gcookbook) # For the data set
+#ggplot(pg_mean, aes(x=group, y=weight)) + geom_bar(stat="identity")!
+library(ggplot2)
+ggplot(chr_probe,aes(x=Chromosome,y=Probe_numbers,fill=Chromosome))+scale_fill_manual(values = c("#669933","#FFCC66","#FF44AA","#FF3333","#FF7744","#FFAA33","#FFCC22","#FFAA33","#FFCC22","#FFFF33","#CCFF33","#99FF33","#33FF33","#33FFAA","#33FFDD","#33FFFF","#009FCC","#5599FF","#5555FF","#7744FF","#9955FF","#B94FFF"))+geom_bar(stat = "identity")+geom_text(aes(label=Probe_numbers), vjust=-1, colour="black",size=6)
+##Part2
+byChr<-split(names(chrVec),chrVec)
+sapply(byChr,length)
+byChr[1]
+byChr[[2]]
+hgu133plus2ENTREZID$"239637_at"
+hgu133plus2MAP$"239637_at"
