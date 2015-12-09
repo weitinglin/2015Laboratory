@@ -1,0 +1,142 @@
+##20151206
+##weitinglin
+##microarray
+#load the data
+library(affy)#microarray data structure: assayData, featureData(annotation),phenoData, protocolData, experimentData
+
+
+source("https://bioconductor.org/biocLite.R")
+biocLite("Biobase")
+library(simpleaffy)
+#file arrange
+set2=list.files("/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/raw data 20100114/set 2 CLS CLF",pattern="[CEL]")
+
+##set2
+phenodata_set2=matrix(rep(set2, 2) , ncol=2)
+phenodata_set2=as.data.frame(phenodata_set2)
+colnames(phenodata_set2)=c("Name", "FileName")
+phenodata_set2$experiment_set=c(rep("set2_1",3),rep("set2_2",3))
+write.table(phenodata_set2,"/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/raw data 20100114/phenodata_set2.txt",quote=F,sep="\t",row.names=F)
+dim(celfile_set2)
+##load the data
+
+celfile_set2=ReadAffy(celfile.path="/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/raw data 20100114/set 2 CLS CLF",phenoData="/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/raw data 20100114/phenodata_set2.txt")
+
+library(RColorBrewer)
+cols=brewer.pal(8,"Set2")
+boxplot(celfile_set2,col=cols, las=2,main="set1")
+?boxplot
+##expression profile
+ecelfile_set2<-exprs(celfile_set2)
+
+##plot the intensities and the count
+colnames(ecelfile_set2)
+CHF_6_1<-ecelfile_set2[,1]
+CHF_6_2<-ecelfile_set2[,2]
+CHF_6_3<-ecelfile_set2[,3]
+CHS_6_1<-ecelfile_set2[,4]
+CHS_6_2<-ecelfile_set2[,5]
+CHS_6_3<-ecelfile_set2[,6]
+table(CHF_6_1)
+table(table(CHF_6_1))
+length(CHF_6_1[CHF_6_1<100])
+length(CHF_6_1[CHF_6_1<1000&CHF_6_1])
+length(CHF_6_1)
+library(ggplot2)
+##plot the CHF_6_1 without log
+CHF_6_1_expression<-as.numeric(as.factor(names(table(CHF_6_1))))
+CHF_6_1_count<-as.numeric(as.factor(table(CHF_6_1)))
+CHF_6_1_Set<-data.frame(CHF_6_1_expression,CHF_6_1_count)
+head(CHF_6_1_Set)
+colnames(CHF_6_1_Set)<-c("expression","count")
+ggplot(CHF_6_1_Set,aes(x=expression,y=count))+geom_bar(stat="identity")
+ggplot(CHF_6_1_Set,aes(x=expression,y=count))+geom_line()+geom_point()
+##plot the CHF_6_1 with log
+CHF_6_1_expression_log<-log2(as.numeric(as.factor(names(table(CHF_6_1)))))
+CHF_6_1_count<-as.numeric(as.factor(table(CHF_6_1)))
+CHF_6_1_Set_log<-data.frame(CHF_6_1_expression_log,CHF_6_1_count)
+head(CHF_6_1_Set)
+colnames(CHF_6_1_Set_log)<-c("expression","count")
+ggplot(CHF_6_1_Set_log,aes(x=expression,y=count))+geom_bar(stat="identity")
+ggplot(CHF_6_1_Set_log,aes(x=expression,y=count))+geom_density(stat="identity")
+ggplot(CHF_6_1_Set_log,aes(x=expression,y=count))+geom_freqpoly(stat="identity")
+##Kernel Density Plots
+d<-density(A)
+plot(d)
+par(new=TRUE)
+d1<-density(B)
+plot(d1)
+par(new=TRUE)
+d3<-density(D)
+plot(d3)
+?density
+summary(CHF_6_1)
+CHF_6_1[CHF_6_1<40]
+
+
+##Quantile Normalization
+#Set 4 Quantile Normalization
+dim(ecelfile_set4)
+A<-log2(ecelfile_set2[,1]+1)
+B<-log2(ecelfile_set2[,2]+1)
+C<-log2(ecelfile_set2[,3]+1)
+D<-log2(ecelfile_set2[,4]+1)
+E<-log2(ecelfile_set2[,5]+1)
+F<-log2(ecelfile_set2[,6]+1)
+a<-cbind(A,B,C,D,E,F)
+#step 1: sort each column
+asort <- apply(a,2,sort)
+loc<-apply(a,2,order)  #原本probe的位置apply
+#step 2 :Takes the means of across rows
+amean<-matrix(rep(apply(asort,1,mean),dim(a)[2],nrow=length(apply(asort,1,mean))))
+amean1<-matrix(rep(apply(asort,1,mean),dim(a)[2]),nrow=length(apply(asort,1,mean)))
+#step 3 :Rearranging each column to make the same ordering as the original data
+norm<-matrix(0,dim(a)[1],dim(a)[2])
+
+for(i in 1:dim(amean1)[2]){
+  #norm<-matrix(0,dim(amean)[1],1)
+  for (j in 1:dim(amean1)[1]){
+    #cat(loc[j,i],"\t",i,"\t",j,"\t",amean[j,i],"\n")
+    norm[loc[j,i],i]<-amean1[j,i]
+  }
+}
+#########
+CHF_6_1_QN<-norm[,1]
+CHF_6_2_QN<-norm[,2]
+CHF_6_3_QN<-norm[,3]
+CHS_6_1_QN<-norm[,4]
+CHS_6_2_QN<-norm[,5]
+CHS_6_3_QN<-norm[,6]
+
+QN_bind<-data.frame(CHF_6_1_QN,CHF_6_2_QN,CHF_6_3_QN,CHS_6_1_QN,CHS_6_2_QN,CHS_6_3_QN)
+colnames(QN_bind)<-c()
+#########PLOT##############
+d_QN<-density(CHF_6_1_QN)
+d_QN2<-density(CHF_6_2_QN)
+d_QN3<-density(CHF_6_3_QN)
+d_QN4<-density(CHS_6_1_QN)
+d_QN5<-density(CHS_6_2_QN)
+d_QN6<-density(CHS_6_3_QN)
+head(d_QN)
+plot(d_QN)
+par(new = TRUE)
+plot(d_QN2)
+par(new = TRUE)
+plot(d_QN3)
+par(new = TRUE)
+plot(d_QN6)
+?density
+summary(CHF_6_1_QN)
+############mutiple_plot#####
+ggplot(QN_bind,aes(x=))+geom_bar()
+ggplot(d_QN,aes(x=expression))+geom_line()
+
+
+################use the sorted data to plot
+
+CHF_6_1_QN<-sort(norm[,1])
+rank_CHF_6_1<-rank(CHF_6_1_QN)
+head(rank_CHF_6_1)
+plot_sort_CHF_6_1<-data.frame(rank_CHF_6_1,CHF_6_1_QN)
+colnames(plot_sort_CHF_6_1)<-c("rank","expression")
+ggplot(plot_sort_CHF_6_1,aes(x=rank,y=expression))+geom_line()
