@@ -140,3 +140,82 @@ head(rank_CHF_6_1)
 plot_sort_CHF_6_1<-data.frame(rank_CHF_6_1,CHF_6_1_QN)
 colnames(plot_sort_CHF_6_1)<-c("rank","expression")
 ggplot(plot_sort_CHF_6_1,aes(x=rank,y=expression))+geom_line()
+#########
+CHF_6_1_QN<-norm[,1]
+CHF_6_2_QN<-norm[,2]
+CHF_6_3_QN<-norm[,3]
+CHS_6_1_QN<-norm[,4]
+CHS_6_2_QN<-norm[,5]
+CHS_6_3_QN<-norm[,6]
+
+QN_bind<-data.frame(CHF_6_1_QN,CHF_6_2_QN,CHF_6_3_QN,CHS_6_1_QN,CHS_6_2_QN,CHS_6_3_QN)
+
+colnames(QN_bind)
+QN_phenodata<-matrix(c(colnames(QN_bind),set2),ncol=2) 
+QN_phenodata<-as.data.frame(QN_phenodata)
+colnames(QN_phenodata)<-c("Name","FileName")
+rownames(QN_phenodata)<-colnames(QN_bind)
+QN_phenodata$experiment_set=c(rep("set2_1",3),rep("set2_2",3))
+library(convert)
+as(object,"ExpressionSet")
+QN_bind<-as.matrix(QN_bind)
+QN_metadata<-data.frame(labelDescription=c("Name","FileName","experiment_set"))
+QN_phenodata_set<-new("AnnotatedDataFrame",data=QN_phenodata,varMetadata=QN_metadata)
+QN_expressionSet<-ExpressionSet(assayData = QN_bind,phenoData = QN_phenodata_set,annotation="hgu133plus2")
+phenoData(celfile_set2)
+colnames(QN_bind)<-sampleNames(celfile_set2)
+sampleNames(celfile_set2)
+Quantile_Normalization_eSet<-new("ExpressionSet",phenoData=phenoData(celfile_set2),annotation=annotation(celfile_set2),protocolData=protocolData(celfile_set2),experimentData=experimentData(celfile_set2),exprs=QN_bind)
+
+#########filter the non-differential expression probe
+library("genefilter")
+sds=rowSds(QN_bind)
+sh<-shorth(sds)
+sh
+head(sds)
+
+sds=rowSds(exprs(QN_expressionSet))
+sh<-shorth(sds)
+QN_expressionSet_file<-QN_expressionSet[sds<sh,]
+dim(QN_expressionSet)
+dim(QN_expressionSet_file)
+class(QN_expressionSet_file)
+QN_expressionSet$Name
+QN_expressionSet$FileName
+QN_expressionSet$experiment_set
+table(QN_expressionSet$experiment_set)
+tt<-rowttests(QN_expressionSet_file,"experiment_set")
+head(tt)
+names(tt)
+rr_original<-rowttests(QN_expressionSet,"experiment_set")
+head(rr_original)
+hist(tt$p.value,breaks=50, col="mistyrose",xlab="p-value",main="Removed")
+hist(rr_original$p.value,breaks=50,col="mistyrose",xlab="p-value",main="Original")
+length(featureNames(celfile_set2))
+library(simpleaffy)
+?exprs
+body(rma)
+formals(rma)
+body(probeNames)
+body(pm)
+
+
+#plot histogram
+hist(sds, breaks=50, col="mistyrose",xlab="standard deviation")
+abline(v=sh,col="blue",lwd=3,lty=2)
+##discard those probe sets whose standard deviation is below the value of sh
+CHF_CLS_filt<-QN_bind[sds>=sh,]
+
+dim(CHF_CLS_filt)
+dim(QN_bind)
+
+##Differential expression
+table(celfile_set2$experiment_set)
+Allfilt<-celfile_set2[sds>=sh,]
+celfile_set2_want<-celfile_set2[,c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE)]
+celfile_set2_want$experiment_set<-as.factor(celfile_set2_want$experiment_set)
+celfile_set2_want[sds>=sh,i]
+dim(exprs(celfile_set2_want))
+probeset_experssion<-computeExprSet(celfile_set2_want,pmcorrect.method="pmonly",summary.method="avgdiff")  #use the computeexpression to compute the probeset intensities
+dim(exprs(probeset_experssion))
+gcrma_expression<-gcrma(celfile_set2_want)
