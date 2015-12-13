@@ -1,0 +1,34 @@
+##20151213
+#weitinglin
+#Affy/Biobase practice
+##Differential expression
+table(celfile_set2$experiment_set)
+Allfilt<-celfile_set2[sds>=sh,]
+celfile_set2_want<-celfile_set2[,c(TRUE,TRUE,TRUE,TRUE,TRUE,TRUE)]
+celfile_set2_want$experiment_set<-as.factor(celfile_set2_want$experiment_set)
+celfile_set2_want[sds>=sh,i]
+dim(exprs(celfile_set2_want))
+probeset_experssion<-computeExprSet(celfile_set2_want,pmcorrect.method="pmonly",summary.method="avgdiff")  #use the computeexpression to compute the probeset intensities
+dim(exprs(probeset_experssion))
+gcrma_expression<-gcrma(celfile_set2_want)
+##Probe_Set
+index_probe<-indexProbes(celfile_set2,which="both")
+head(index_probe)  
+class(index_probe)  
+head(unlist(index_probe))
+length(unlist(index_probe))
+head(sort(unlist(index_probe)))
+
+?subListExtract
+cdf_environment<-ls(getCdfInfo(celfile_set2))
+head(cdf_environment)
+
+class(probeNames(celfile_set2))
+length(probeNames(celfile_set2))
+dim(QN_bind)
+1164*1164
+length(featureNames(celfile_set2))
+isVersioned(celfile_set2)
+
+
+classVersion(celfile_set2)
