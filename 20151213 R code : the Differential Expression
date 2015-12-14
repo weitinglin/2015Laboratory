@@ -1,0 +1,136 @@
+##20151208
+##weitinglin66
+##Bioconductor Case Studies
+##Chapter 6: Easy Differential Expression
+library(affy)#microarray data structure: assayData, featureData(annotation),phenoData, protocolData, experimentData
+
+
+source("https://bioconductor.org/biocLite.R")
+biocLite("Biobase")
+library(simpleaffy)
+#file arrange
+set2=list.files("/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/raw data 20100114/set 2 CLS CLF",pattern="[CEL]")
+##Affybatch manipulation
+celfile_set2
+length(featureNames(celfile_set2))
+length(probeNames(celfile_set2))
+length(probeset(celfile_set2))
+hist(celfile_set2)
+plotDensity.AffyBatch(celfile_set2,col=1:6,log=TRUE, which=c("both"),ylab="density")
+length(geneNames(celfile_set2))
+head(getCdfInfo(celfile_set2[1]))
+celfile_set2$experiment_set
+
+
+##set2
+phenodata_set2=matrix(rep(set2, 2) , ncol=2)
+phenodata_set2=as.data.frame(phenodata_set2)
+colnames(phenodata_set2)=c("Name", "FileName")
+phenodata_set2$experiment_set=c(rep("set2_1",3),rep("set2_2",3))
+write.table(phenodata_set2,"/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/raw data 20100114/phenodata_set2.txt",quote=F,sep="\t",row.names=F)
+dim(celfile_set2)
+##load the data
+
+celfile_set2=ReadAffy(celfile.path="/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/raw data 20100114/set 2 CLS CLF",phenoData="/Users/jasonlin/Documents/2015 實驗室資料處理/201510 microarray/raw data 20100114/phenodata_set2.txt")
+
+library(RColorBrewer)
+cols=brewer.pal(8,"Set2")
+boxplot(celfile_set2,col=cols, las=2,main="set1")
+?boxplot
+##expression profile
+ecelfile_set2<-exprs(celfile_set2)
+
+##Quantile Normalization
+#Set 4 Quantile Normalization
+dim(ecelfile_set4)
+A<-log2(ecelfile_set2[,1]+1)
+B<-log2(ecelfile_set2[,2]+1)
+C<-log2(ecelfile_set2[,3]+1)
+D<-log2(ecelfile_set2[,4]+1)
+E<-log2(ecelfile_set2[,5]+1)
+F<-log2(ecelfile_set2[,6]+1)
+a<-cbind(A,B,C,D,E,F)
+#step 1: sort each column
+asort <- apply(a,2,sort)
+loc<-apply(a,2,order)  #原本probe的位置apply
+#step 2 :Takes the means of across rows
+amean<-matrix(rep(apply(asort,1,mean),dim(a)[2],nrow=length(apply(asort,1,mean))))
+amean1<-matrix(rep(apply(asort,1,mean),dim(a)[2]),nrow=length(apply(asort,1,mean)))
+#step 3 :Rearranging each column to make the same ordering as the original data
+norm<-matrix(0,dim(a)[1],dim(a)[2])
+
+for(i in 1:dim(amean1)[2]){
+  #norm<-matrix(0,dim(amean)[1],1)
+  for (j in 1:dim(amean1)[1]){
+    #cat(loc[j,i],"\t",i,"\t",j,"\t",amean[j,i],"\n")
+    norm[loc[j,i],i]<-amean1[j,i]
+  }
+}
+#########annotation
+library(hgu133plus2.db)
+
+
+#########re-construct back AffyBach####
+CHF_6_1_QN<-norm[,1]
+CHF_6_2_QN<-norm[,2]
+CHF_6_3_QN<-norm[,3]
+CHS_6_1_QN<-norm[,4]
+CHS_6_2_QN<-norm[,5]
+CHS_6_3_QN<-norm[,6]
+
+QN_bind<-data.frame(CHF_6_1_QN,CHF_6_2_QN,CHF_6_3_QN,CHS_6_1_QN,CHS_6_2_QN,CHS_6_3_QN)
+colnames(QN_bind)<-sampleNames(celfile_set2)
+Quantile_Normalization_eSet<-new("ExpressionSet",phenoData=phenoData(celfile_set2),annotation=annotation(celfile_set2),protocolData=protocolData(celfile_set2),experimentData=experimentData(celfile_set2),exprs=QN_bind)
+
+#######Post Quantile Normalization###
+library(RColorBrewer)
+cols=brewer.pal(8,"Set2")
+boxplot(exprs(Quantile_Normalization_eSet),col=cols, las=2,main="set1")
+hist(exprs(Quantile_Normalization_eSet))
+Quantile_Normalization_eSet
+
+#######Filter only probe 
+probe_index<-as.factor(unlist(index_probe))
+probe_names<-names(unlist(index_probe))
+head(probe_names)
+head(probe_index)
+QN_probe_annotation<-Quantile_Normalization_eSet[probe_index,]
+head(dim(QN_probe_annotation))
+hist(exprs(QN_probe_annotation))
+boxplot(exprs(QN_probe_annotation),col=cols, las=2,main="set1")
+#########filter the non-differential expression probe
+library("genefilter")
+sds=rowSds(exprs(QN_probe_annotation))
+sh<-shorth(sds)
+sh
+
+
+QN_expressionSet_file<-QN_probe_annotation[sds<sh,]
+QN_expressionSet_file_in<-QN_probe_annotation[sds>=sh,]
+table(QN_expressionSet_file$experiment_set)
+tt<-rowttests(QN_expressionSet_file,"experiment_set")
+tt_filter<-rowttests(QN_expressionSet_file_in,"experiment_set")
+tt_original<-rowttests(QN_probe_annotation,"experiment_set")
+head(rr_original)
+hist(tt$p.value,breaks=50, col="mistyrose",xlab="p-value",main="Removed")
+hist(tt_original$p.value,breaks=50,col="mistyrose",xlab="p-value",main="Original")
+hist(tt_filter$p.value,breaks=50,col="mistyrose",xlab="p-value",main="Filter")
+
+##Mutiple T test
+library(multtest)
+mt<-mt.rawp2adjp(tt_filter$p.value,proc="BH")
+
+g<-featureNames(QN_expressionSet_file_in)[mt$index[1:10]]
+library(hgu133plus2.db)
+links(hgu133plus2SYMBOL[g])
+x<-as.list(hgu133plus2SYMBOL)
+y<-as.list(hgu133plus2ALIAS2PROBE)
+class(unlist(index_probe))
+grep("^12715$",unlist(index_probe))
+unlist(index_probe)[106336]
+#plot histogram
+hist(sds, breaks=50, col="mistyrose",xlab="standard deviation")
+abline(v=sh,col="blue",lwd=3,lty=2)
+
+1554742_at13 
+1559509_at22 
